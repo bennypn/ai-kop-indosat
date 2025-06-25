@@ -7,10 +7,11 @@ from ultralytics import YOLO
 import torch
 from torch.serialization import safe_globals
 from ultralytics.nn.tasks import DetectionModel
+from ultralytics.nn.modules.conv import Conv
 from torch.nn.modules.container import Sequential
 
 # ✅ Daftar semua class yang dibutuhkan ke dalam context manager
-with safe_globals([DetectionModel, Sequential]):
+with safe_globals([DetectionModel, Sequential, Conv]):
     from ultralytics import YOLO
     model = YOLO("tiang.pt")
 
@@ -25,7 +26,7 @@ from config import MAX_THREADS
 with safe_globals([DetectionModel, Sequential]):
     from ultralytics import YOLO
     model = YOLO("tiang.pt")
-    
+
 thread_queue = threading.BoundedSemaphore(MAX_THREADS)
 
 def analyze_pdf(pdf_id, filename, pdf_bytes):
