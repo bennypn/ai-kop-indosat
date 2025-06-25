@@ -18,7 +18,7 @@ def init_db():
             status TEXT,
             base64 TEXT,
             hash TEXT UNIQUE,
-            UNIQUE (pdf_name, total_page) 
+            UNIQUE (pdf_name, total_page)
         );
 
         CREATE TABLE IF NOT EXISTS kopindosat.pdf_pages (
@@ -30,7 +30,7 @@ def init_db():
             description TEXT,
             status BOOLEAN,
             base64 TEXT,
-            UNIQUE (pdf_id, page) 
+            UNIQUE (pdf_id, page)
         );
 
         CREATE TABLE IF NOT EXISTS kopindosat.page_analysis (
@@ -38,7 +38,7 @@ def init_db():
             page_id INTEGER REFERENCES kopindosat.pdf_pages(id) ON DELETE CASCADE,
             avg_similarity FLOAT,
             page_valid BOOLEAN,
-            UNIQUE (page_id) 
+            UNIQUE (page_id)
         );
 
         CREATE TABLE IF NOT EXISTS kopindosat.page_analysis_group (
@@ -53,9 +53,8 @@ def init_db():
             has_detail BOOLEAN,
             pole_name TEXT,
             group_valid BOOLEAN,
-            UNIQUE (anal_id, group_id) 
+            UNIQUE (anal_id, group_id)
         );
-
     """)
     conn.commit()
 
@@ -71,6 +70,11 @@ def insert_pdf(name, total_page, base64_data, pdf_hash, description="Uploaded", 
         result = cursor.fetchone()
         conn.commit()
         return result[0]
+    except psycopg2.errors.UniqueViolation:
+        conn.rollback()
+        cursor.execute("SELECT id FROM kopindosat.pdfs WHERE hash = %s", (pdf_hash,))
+        existing = cursor.fetchone()
+        return existing[0] if existing else None
     except Exception as e:
         conn.rollback()
         print(f"❌ Error insert PDF: {e}")
@@ -89,7 +93,10 @@ def get_pdf_info(pdf_id):
     return cursor.fetchone()
 
 def update_pdf_total_page(pdf_id, total_page):
-    cursor.execute("UPDATE kopindosat.pdfs SET total_page = %s WHERE id = %s", (total_page, pdf_id))
+    cursor.execute(
+        "UPDATE kopindosat.pdfs SET total_page = %s WHERE id = %s",
+        (total_page, pdf_id)
+    )
     conn.commit()
 
 def update_pdf_status(pdf_id, status):
@@ -112,6 +119,14 @@ def save_page_to_db(pdf_id, page, page_name, img_base64, description, status):
         result = cursor.fetchone()
         conn.commit()
         return result[0]
+    except psycopg2.errors.UniqueViolation:
+        conn.rollback()
+        cursor.execute("""
+            SELECT id FROM kopindosat.pdf_pages
+            WHERE pdf_id = %s AND page = %s
+        """, (pdf_id, page))
+        existing = cursor.fetchone()
+        return existing[0] if existing else None
     except Exception as e:
         conn.rollback()
         print(f"❌ Error insert page {page_name}: {e}")
@@ -138,6 +153,7 @@ def insert_page_analysis(page_id, avg_similarity, page_valid):
             INSERT INTO kopindosat.page_analysis
             (page_id, avg_similarity, page_valid)
             VALUES (%s, %s, %s)
+            ON CONFLICT (page_id) DO NOTHING
         """, (page_id, avg_similarity, page_valid))
         conn.commit()
     except Exception as e:
@@ -158,7 +174,7 @@ def get_analysis_id_by_page(page_id):
         SELECT id
         FROM kopindosat.page_analysis
         WHERE page_id = %s
-        ORDER BY id DESC LIMIT 1
+        ORDER BY id DESC
     """, (page_id,))
     result = cursor.fetchone()
     return result[0] if result else None
@@ -175,6 +191,7 @@ def insert_group_analysis(
             (anal_id, group_id, similarity, timestamp, detail,
              has_pole, has_timestamp, has_detail, pole_name, group_valid)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (anal_id, group_id) DO NOTHING
         """, (
             anal_id, group_id, similarity, timestamp, detail,
             has_pole, has_timestamp, has_detail, pole_name, group_valid
@@ -182,11 +199,11 @@ def insert_group_analysis(
         conn.commit()
     except Exception as e:
         conn.rollback()
-        print(f"❌ Error insert group_analysis anal_id {anal_id}: {e}")
+        print(f"❌ Error insert group_analysis anal_id {anal_id} group_id {group_id}: {e}")
 
 def get_page_groups(page_id):
     cursor.execute("""
-        SELECT g.similarity, g.timestamp, g.detail,
+        SELECT g.id, g.group_id, g.similarity, g.timestamp, g.detail,
                g.has_pole, g.has_timestamp, g.has_detail,
                g.pole_name, g.group_valid
         FROM kopindosat.page_analysis_group g

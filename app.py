@@ -74,9 +74,15 @@ def inquiry(pdf_id):
 
         groups = get_page_groups(page_id)
         group_data = [dict(
-            similarity=g[0], timestamp=g[1], detail=g[2],
-            has_pole=g[3], has_timestamp=g[4], has_detail=g[5],
-            pole_name=g[6], valid=g[7]
+            group_id= g[0],
+            similarity= g[1],
+            timestamp= g[2],
+            detail= g[3],
+            has_pole= g[4],
+            has_timestamp= g[5],
+            has_detail= g[6],
+            pole_name= g[7],
+            valid= g[8]
         ) for g in groups]
 
         result.append({
