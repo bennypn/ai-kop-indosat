@@ -13,6 +13,12 @@ from repository import (
 )
 from config import MAX_THREADS
 
+from torch.serialization import add_safe_globals
+from ultralytics.nn.tasks import DetectionModel
+
+add_safe_globals([DetectionModel])
+
+
 model = YOLO("tiang.pt")
 thread_queue = threading.BoundedSemaphore(MAX_THREADS)
 
