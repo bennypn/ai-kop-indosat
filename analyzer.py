@@ -4,6 +4,15 @@ from PIL import Image
 from io import BytesIO
 import threading
 from ultralytics import YOLO
+import torch
+from torch.serialization import safe_globals
+from ultralytics.nn.tasks import DetectionModel
+from torch.nn.modules.container import Sequential
+
+# ✅ Daftar semua class yang dibutuhkan ke dalam context manager
+with safe_globals([DetectionModel, Sequential]):
+    from ultralytics import YOLO
+    model = YOLO("tiang.pt")
 
 from utils import ocr_text, compare_str, extract_pole_name, base64_encode
 from repository import (
@@ -13,13 +22,10 @@ from repository import (
 )
 from config import MAX_THREADS
 
-from torch.serialization import add_safe_globals
-from ultralytics.nn.tasks import DetectionModel
-
-add_safe_globals([DetectionModel])
-
-
-model = YOLO("tiang.pt")
+with safe_globals([DetectionModel, Sequential]):
+    from ultralytics import YOLO
+    model = YOLO("tiang.pt")
+    
 thread_queue = threading.BoundedSemaphore(MAX_THREADS)
 
 def analyze_pdf(pdf_id, filename, pdf_bytes):
