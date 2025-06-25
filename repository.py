@@ -203,9 +203,17 @@ def insert_group_analysis(
 
 def get_page_groups(page_id):
     cursor.execute("""
-        SELECT g.id, g.group_id, g.similarity, g.timestamp, g.detail,
-               g.has_pole, g.has_timestamp, g.has_detail,
-               g.pole_name, g.group_valid
+        SELECT
+            g.id,              -- [0] ❌ Ini tidak dipakai di JSON
+            g.group_id,        -- [1]
+            g.similarity,      -- [2]
+            g.timestamp,       -- [3]
+            g.detail,          -- [4]
+            g.has_pole,        -- [5]
+            g.has_timestamp,   -- [6]
+            g.has_detail,      -- [7]
+            g.pole_name,       -- [8]
+            g.group_valid      -- [9]
         FROM kopindosat.page_analysis_group g
         JOIN kopindosat.page_analysis a ON g.anal_id = a.id
         WHERE a.page_id = %s
