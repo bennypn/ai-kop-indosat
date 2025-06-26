@@ -4,16 +4,6 @@ from PIL import Image
 from io import BytesIO
 import threading
 from ultralytics import YOLO
-import torch
-from torch.serialization import safe_globals
-from ultralytics.nn.tasks import DetectionModel
-from ultralytics.nn.modules.conv import Conv
-from torch.nn.modules.container import Sequential
-
-# ✅ Daftar semua class yang dibutuhkan ke dalam context manager
-with safe_globals([DetectionModel, Sequential, Conv]):
-    from ultralytics import YOLO
-    model = YOLO("tiang.pt")
 
 from utils import ocr_text, compare_str, extract_pole_name, base64_encode
 from repository import (
@@ -23,10 +13,8 @@ from repository import (
 )
 from config import MAX_THREADS
 
-with safe_globals([DetectionModel, Sequential]):
-    from ultralytics import YOLO
-    model = YOLO("tiang.pt")
-
+# ✅ Load model ONNX (hasil export dari training)
+model = YOLO("train/weights/best.onnx")
 thread_queue = threading.BoundedSemaphore(MAX_THREADS)
 
 def analyze_pdf(pdf_id, filename, pdf_bytes):
@@ -52,7 +40,7 @@ def analyze_pdf(pdf_id, filename, pdf_bytes):
                 description="Berhasil convert ke gambar", status=True
             )
 
-            # Object detection dengan YOLO
+            # Inference dengan YOLO ONNX
             result = model(img_array)[0]
             boxes = result.boxes.data
             labels = result.names
@@ -69,7 +57,7 @@ def analyze_pdf(pdf_id, filename, pdf_bytes):
             similarities = []
             group_counter = 1
 
-            # 💾 Insert page_analysis lebih dulu agar anal_id tersedia
+            # 💾 Simpan page_analysis dulu
             avg_sim = 0.0
             page_valid = False
             if group_boxes:
@@ -103,7 +91,7 @@ def analyze_pdf(pdf_id, filename, pdf_bytes):
             insert_page_analysis(page_id, avg_sim, page_valid)
             anal_id = get_analysis_id_by_page(page_id)
 
-            # Insert group jika belum ada
+            # Insert group_analysis jika belum ada
             if anal_id:
                 existing_groups = get_page_groups(page_id)
                 existing_group_ids = {g[1] for g in existing_groups}
@@ -145,8 +133,7 @@ def analyze_pdf(pdf_id, filename, pdf_bytes):
                             group_valid=group_valid
                         )
                     else:
-                        print(f"⏭️ Group {group_counter} already exists in DB, skipping.")
-
+                        print(f"⏭️ Group {group_counter} sudah ada, skip insert.")
                     group_counter += 1
 
         update_pdf_status(pdf_id, "completed")
