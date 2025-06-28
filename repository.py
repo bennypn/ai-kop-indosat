@@ -108,14 +108,14 @@ def update_pdf_status(pdf_id, status):
         print(f"❌ Error update status PDF {pdf_id}: {e}")
 
 # --- Pages ---
-def save_page_to_db(pdf_id, page, page_name, img_base64, description, status):
+def save_page_to_db(pdf_id, page, page_name, img_base64, description, status, url):
     try:
         cursor.execute("""
             INSERT INTO kopindosat.pdf_pages
             (pdf_id, page, page_name, url, description, status, base64)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
             RETURNING id;
-        """, (pdf_id, page, page_name, None, description, status, img_base64))
+        """, (pdf_id, page, page_name, url, description, status, img_base64))
         result = cursor.fetchone()
         conn.commit()
         return result[0]
@@ -134,7 +134,7 @@ def save_page_to_db(pdf_id, page, page_name, img_base64, description, status):
 
 def get_pdf_pages(pdf_id):
     cursor.execute("""
-        SELECT id, page, page_name
+        SELECT id, page, page_name, url
         FROM kopindosat.pdf_pages
         WHERE pdf_id = %s
         ORDER BY page

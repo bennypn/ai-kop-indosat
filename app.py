@@ -110,3 +110,59 @@ def inquiry(pdf_id):
     progress = int((analyzed_count / int(total_page)) * 100) if total_page else 0
 
     result = []  # List hasil analisis tiap hal
+    sum_similarity = 0
+    valid_pages = 0
+
+    for page_id, page_num, page_name, page_url in pages:
+        analysis = get_page_analysis(page_id)
+        if not analysis:
+            continue
+
+        avg_similarity, page_valid = analysis
+
+        # Hitung sum avg similarity
+        if page_valid:
+            sum_similarity += avg_similarity
+            valid_pages += 1
+
+        groups = get_page_groups(page_id)
+        group_data = [dict(
+            group_id=g[1],
+            similarity=g[2],
+            timestamp=g[3],
+            detail=g[4],
+            has_pole=g[5],
+            has_timestamp=g[6],
+            has_detail=g[7],
+            pole_name=g[8],
+            valid=g[9]
+        ) for g in groups]
+
+        result.append({
+            "page": page_num,
+            "page_id": page_id,
+            "page_name": page_name,
+            "url": page_url,
+            "avg_similarity": avg_similarity,
+            "page_valid": page_valid,
+            "groups": group_data
+        })
+
+    sum_avg_similarity = round(sum_similarity, 2)
+
+    return jsonify({
+        "pdf_id": pdf_id,
+        "pdf_name": pdf_name,
+        "progress": progress,
+        "status": status,
+        "sum_avg_similarity": sum_avg_similarity,
+        "message": "Berhasil Menganalisa PDF" if status == "completed" else "Masih diproses...",
+        "valid_pages": valid_pages,
+        "total_pages": total_page,
+        "valid_percent": round((valid_pages / total_page) * 100, 2) if total_page else 0,
+        "result": result
+    })
+
+if __name__ == '__main__':
+    init_db()
+    app.run(debug=False, host='0.0.0.0', port=5000)
