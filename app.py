@@ -24,6 +24,7 @@ from repository import (
 
 # Import utilitas untuk hash dan encoding base64
 from utils import get_pdf_hash, base64_encode, base64_decode
+from datetime import datetime
 
 # Inisialisasi aplikasi Flask
 app = Flask(__name__)
@@ -118,7 +119,7 @@ def inquiry(pdf_id):
         if not analysis:
             continue
 
-        avg_similarity, page_valid = analysis
+        avg_similarity, page_valid, created_date = analysis
 
         # Hitung sum avg similarity
         if page_valid:
@@ -135,7 +136,10 @@ def inquiry(pdf_id):
             has_timestamp=g[6],
             has_detail=g[7],
             pole_name=g[8],
-            valid=g[9]
+            remark=g[9],  # Ambil remark dari grup
+            valid=g[10],
+            created_date=created_date,
+            aging=(datetime.now() - created_date).days if isinstance(created_date, datetime) else None
         ) for g in groups]
 
         result.append({
@@ -145,7 +149,9 @@ def inquiry(pdf_id):
             "url": page_url,
             "avg_similarity": avg_similarity,
             "page_valid": page_valid,
-            "groups": group_data
+            "groups": group_data,
+            "created_date": created_date,
+            "aging": (datetime.now() - created_date).days if isinstance(created_date, datetime) else None
         })
 
     sum_avg_similarity = round(sum_similarity, 2)

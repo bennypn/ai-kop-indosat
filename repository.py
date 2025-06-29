@@ -1,5 +1,6 @@
 import psycopg2
 from config import DB_CONFIG
+from datetime import datetime
 
 conn = psycopg2.connect(**DB_CONFIG)
 cursor = conn.cursor()
@@ -38,6 +39,7 @@ def init_db():
             page_id INTEGER REFERENCES kopindosat.pdf_pages(id) ON DELETE CASCADE,
             avg_similarity FLOAT,
             page_valid BOOLEAN,
+            created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,                                      
             UNIQUE (page_id)
         );
 
@@ -52,6 +54,7 @@ def init_db():
             has_timestamp BOOLEAN,
             has_detail BOOLEAN,
             pole_name TEXT,
+            remark TEXT,
             group_valid BOOLEAN,
             UNIQUE (anal_id, group_id)
         );
@@ -151,10 +154,10 @@ def insert_page_analysis(page_id, avg_similarity, page_valid):
     try:
         cursor.execute("""
             INSERT INTO kopindosat.page_analysis
-            (page_id, avg_similarity, page_valid)
-            VALUES (%s, %s, %s)
+            (page_id, avg_similarity, page_valid, created_date)
+            VALUES (%s, %s, %s, %s)
             ON CONFLICT (page_id) DO NOTHING
-        """, (page_id, avg_similarity, page_valid))
+        """, (page_id, avg_similarity, page_valid, datetime.now()))
         conn.commit()
     except Exception as e:
         conn.rollback()
@@ -162,7 +165,7 @@ def insert_page_analysis(page_id, avg_similarity, page_valid):
 
 def get_page_analysis(page_id):
     cursor.execute("""
-        SELECT avg_similarity, page_valid
+        SELECT avg_similarity, page_valid, created_date
         FROM kopindosat.page_analysis
         WHERE page_id = %s
         ORDER BY id DESC LIMIT 1
@@ -183,18 +186,18 @@ def get_analysis_id_by_page(page_id):
 def insert_group_analysis(
     anal_id, group_id, similarity, timestamp,
     detail, has_pole, has_timestamp, has_detail,
-    pole_name, group_valid
+    pole_name, remark, group_valid
 ):
     try:
         cursor.execute("""
             INSERT INTO kopindosat.page_analysis_group
             (anal_id, group_id, similarity, timestamp, detail,
-             has_pole, has_timestamp, has_detail, pole_name, group_valid)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+             has_pole, has_timestamp, has_detail, pole_name, remark, group_valid)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (anal_id, group_id) DO NOTHING
         """, (
             anal_id, group_id, similarity, timestamp, detail,
-            has_pole, has_timestamp, has_detail, pole_name, group_valid
+            has_pole, has_timestamp, has_detail, pole_name, remark, group_valid
         ))
         conn.commit()
     except Exception as e:
@@ -213,7 +216,8 @@ def get_page_groups(page_id):
             g.has_timestamp,   -- [6]
             g.has_detail,      -- [7]
             g.pole_name,       -- [8]
-            g.group_valid      -- [9]
+            g.remark,          -- [9]
+            g.group_valid      -- [10]
         FROM kopindosat.page_analysis_group g
         JOIN kopindosat.page_analysis a ON g.anal_id = a.id
         WHERE a.page_id = %s

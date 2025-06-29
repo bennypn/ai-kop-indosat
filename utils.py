@@ -27,3 +27,8 @@ def extract_pole_name(detail_text):
     match = re.search(r"Pole\s+Name\s+(.*?)\s+Pole\s+Hight", detail_text, re.IGNORECASE)
     return match.group(1).strip() if match else None
 
+def extract_remark(detail_text: str) -> str:
+    match = re.search(r'Remark\s+(.*)', detail_text, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    return ''

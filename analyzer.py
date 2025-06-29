@@ -7,7 +7,7 @@ import threading  # Untuk menjalankan proses paralel/threading
 from ultralytics import YOLO  # Library YOLOv8 untuk object detection
 
 # Import fungsi utilitas
-from utils import ocr_text, compare_str, extract_pole_name, base64_encode
+from utils import ocr_text, compare_str, extract_pole_name, base64_encode, extract_remark
 
 # Import fungsi-fungsi database
 from repository import (
@@ -154,6 +154,7 @@ def analyze_pdf(pdf_id, filename, pdf_bytes):
                             has_timestamp=has_timestamp,
                             has_detail=has_detail,
                             pole_name=extract_pole_name(detail_text),
+                            remark=extract_remark(detail_text),
                             group_valid=group_valid
                         )
                     group_counter += 1
